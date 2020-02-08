@@ -2,7 +2,7 @@ import pytest
 import itertools
 
 from nexuscli.api import repository
-from nexuscli.cli import subcommand_repository
+from nexuscli.cli import subcommand_repository, errors
 
 
 SUPPORTED_FORMATS = set(
@@ -205,3 +205,28 @@ def test_del(nexus_client):
     repositories = nexus_client.repositories.raw_list()
 
     assert not any(r['name'] == 'maven-public' for r in repositories)
+
+
+@pytest.mark.integration
+def test_list_it(nexus_client):
+    """ Test that repo list returns a correct """
+    argv_rm = pytest.helpers.create_argv(
+        'repository list', **locals())
+    status_code = subcommand_repository.main(argv=list(filter(None, argv_rm)))
+
+    assert status_code == errors.CliReturnCode.SUCCESS.value
+
+
+@pytest.mark.parametrize(
+    'repo, result', [
+        ('not-found', errors.CliReturnCode.REPOSITORY_NOT_FOUND.value,),
+        ('maven-snapshots', errors.CliReturnCode.SUCCESS.value, )]
+    )
+@pytest.mark.integration
+def test_show(nexus_client, repo, result):
+    """ Test that repo list returns a correct """
+    argv_rm = pytest.helpers.create_argv(
+        'repository show {repo}', **locals())
+    status_code = subcommand_repository.main(argv=list(filter(None, argv_rm)))
+
+    assert status_code == result
